@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	v8 "rogchap.com/v8go"
 	"strings"
 )
 
@@ -100,7 +101,26 @@ func readJsonToGo() (string, error) {
 }
 
 func executeOnV8(json2Go string, curl2Go string, curl string) (string, error) {
-	return "", nil
+	ctx := v8.NewContext()
+
+	// Load scripts to the main context
+	ctx.RunScript(json2Go, "main.js")
+	ctx.RunScript(curl2Go, "main.js")
+
+	// Compose js function call
+	script := "const result = curlToGo(`" + curl + "`)"
+
+	// Load js function call to the main context
+	ctx.RunScript(script, "main.js")
+
+	// Evaluate js result
+	val, err := ctx.RunScript("result", "value.js")
+
+	if err != nil {
+		return "", nil
+	}
+
+	return val.String(), nil
 }
 
 func executeOnYaegi(code string) error {
