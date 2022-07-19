@@ -72,16 +72,14 @@ func main() {
 }
 
 func readCurlStdIn() (string, error) {
-	return "curl -X GET https://google.com", nil
+	data := strings.Builder{}
 
-	//data := ""
-	//
-	//scanner := bufio.NewScanner(os.Stdin)
-	//for scanner.Scan() {
-	//    data += scanner.Text()
-	//}
-	//
-	//return data
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		data.WriteString(scanner.Text())
+	}
+
+	return data.String(), nil
 }
 
 func readFile(name string) (string, error) {
@@ -144,10 +142,15 @@ func executeOnV8(json2Go string, curl2Go string, curl string) (string, error) {
 
 func executeOnYaegi(code string) error {
 	i := interp.New(interp.Options{})
+	var err error
 
-	i.Use(stdlib.Symbols)
+	err = i.Use(stdlib.Symbols)
 
-	_, err := i.Eval(code)
+	if err != nil {
+		return err
+	}
+
+	_, err = i.Eval(code)
 
 	return err
 }
@@ -162,8 +165,8 @@ func normalizeGoCode(code string) (string, error) {
 
 	var result bytes.Buffer
 
-	// Data for template must be a struct
-	// TODO: add options here
+	// Data for template must be a struct/map
+	// TODO: add options here and add conditions to template
 	data := map[string]interface{}{
 		"code": code,
 	}
