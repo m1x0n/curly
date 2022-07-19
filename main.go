@@ -8,6 +8,7 @@ import (
 	"github.com/traefik/yaegi/stdlib"
 	"os"
 	v8 "rogchap.com/v8go"
+	"sort"
 	"strings"
 	"text/template"
 )
@@ -168,7 +169,8 @@ func normalizeGoCode(code string) (string, error) {
 	// Data for template must be a struct/map
 	// TODO: add options here and add conditions to template
 	data := map[string]interface{}{
-		"code": code,
+		"code":    code,
+		"imports": getImports(code),
 	}
 
 	err = tpl.Execute(&result, data)
@@ -178,4 +180,40 @@ func normalizeGoCode(code string) (string, error) {
 	}
 
 	return result.String(), nil
+}
+
+func getImports(code string) []string {
+	imports := []string{
+		"net/http",
+		"io/ioutil",
+		"fmt",
+	}
+
+	if strings.Contains(code, "application/json") {
+		imports = append(imports, []string{"encoding/json", "bytes"}...)
+	}
+
+	if strings.Contains(code, "url.Values{}") {
+		imports = append(imports, "net/url")
+	}
+
+	if strings.Contains(code, "strings.NewReader") {
+		imports = append(imports, "strings")
+	}
+
+	if strings.Contains(code, "os.Open") {
+		imports = append(imports, "os")
+	}
+
+	if strings.Contains(code, "io.MultiReader") {
+		imports = append(imports, "io")
+	}
+
+	if strings.Contains(code, "tls.Config") {
+		imports = append(imports, "crypto/tls")
+	}
+
+	sort.Strings(imports)
+
+	return imports
 }
