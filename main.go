@@ -53,6 +53,11 @@ func main() {
 
 	//fmt.Println(goString)
 
+	if len(goString) == 0 || goString == "undefined" {
+		fmt.Println("Failed to convert curl properly")
+		os.Exit(1)
+	}
+
 	// Make code ready to execute standalone
 	goCode, err := normalizeGoCode(goString)
 
@@ -78,6 +83,7 @@ func readCurlStdIn() (string, error) {
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
 		data.WriteString(scanner.Text())
+		data.WriteString("\n")
 	}
 
 	return data.String(), nil
@@ -118,15 +124,51 @@ func readJsonToGo() (string, error) {
 	return readFile("./js/json-to-go.js")
 }
 
+func prepareJsCall(curl string) (string, error) {
+	// Compose js function call
+
+	script := "const result = curlToGo(`" + curl + "`)"
+	return script, nil
+
+	//tpl, err := template.ParseFiles("./templates/js.tmpl")
+	//
+	//if err != nil {
+	//	return "", err
+	//}
+	//
+	//var result bytes.Buffer
+	//
+	//data := map[string]interface{}{
+	//	"curl": curl,
+	//}
+	//
+	//err = tpl.Execute(&result, data)
+	//
+	//if err != nil {
+	//	return "", err
+	//}
+	//
+	//script := result.String()
+	//
+	//return script, nil
+}
+
 func executeOnV8(json2Go string, curl2Go string, curl string) (string, error) {
 	ctx := v8.NewContext()
+
+	defer ctx.Close()
 
 	// Load scripts to the main context
 	ctx.RunScript(json2Go, "main.js")
 	ctx.RunScript(curl2Go, "main.js")
 
 	// Compose js function call
-	script := "const result = curlToGo(`" + curl + "`)"
+	//FIXME: string like "key1=value+1&key2=value%3A2" crashes on v8
+	script, err := prepareJsCall(curl)
+
+	if err != nil {
+		return "", err
+	}
 
 	// Load js function call to the main context
 	ctx.RunScript(script, "main.js")
@@ -135,7 +177,7 @@ func executeOnV8(json2Go string, curl2Go string, curl string) (string, error) {
 	val, err := ctx.RunScript("result", "value.js")
 
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 
 	return val.String(), nil
