@@ -2,10 +2,14 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
+	"github.com/traefik/yaegi/interp"
+	"github.com/traefik/yaegi/stdlib"
 	"os"
 	v8 "rogchap.com/v8go"
 	"strings"
+	"text/template"
 )
 
 func main() {
@@ -18,7 +22,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println(json2Go)
+	//fmt.Println(json2Go)
 
 	// Grab js functions
 	curl2Go, err := readCurl2Go()
@@ -28,7 +32,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println(curl2Go)
+	//fmt.Println(curl2Go)
 
 	// Grab curl from stdin
 	curlString, err := readCurlStdIn()
@@ -46,10 +50,25 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println(goString)
+	//fmt.Println(goString)
+
+	// Make code ready to execute standalone
+	goCode, err := normalizeGoCode(goString)
+
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	fmt.Println(goCode)
 
 	// Execute generated go code in go via https://github.com/traefik/yaegi
-	executeOnYaegi(goString)
+	err = executeOnYaegi(goCode)
+
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }
 
 func readCurlStdIn() (string, error) {
@@ -124,7 +143,36 @@ func executeOnV8(json2Go string, curl2Go string, curl string) (string, error) {
 }
 
 func executeOnYaegi(code string) error {
-	fmt.Println("Yaegi execution is not implemented")
+	i := interp.New(interp.Options{})
 
-	return nil
+	i.Use(stdlib.Symbols)
+
+	_, err := i.Eval(code)
+
+	return err
+}
+
+// TODO: pass options, make it embed
+func normalizeGoCode(code string) (string, error) {
+	tpl, err := template.ParseFiles("./templates/request.tmpl")
+
+	if err != nil {
+		return "", err
+	}
+
+	var result bytes.Buffer
+
+	// Data for template must be a struct
+	// TODO: add options here
+	data := map[string]interface{}{
+		"code": code,
+	}
+
+	err = tpl.Execute(&result, data)
+
+	if err != nil {
+		return "", err
+	}
+
+	return result.String(), nil
 }
