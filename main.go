@@ -5,11 +5,11 @@ import (
 	"bytes"
 	"embed"
 	_ "embed"
-	"flag"
 	"fmt"
 	"github.com/dop251/goja"
 	"github.com/traefik/yaegi/interp"
 	"github.com/traefik/yaegi/stdlib"
+	"github.com/urfave/cli/v2"
 	"os"
 	"sort"
 	"strings"
@@ -31,30 +31,69 @@ var js embed.FS
 var tpl embed.FS
 
 func main() {
-	// Init flag params
-	// TODO: Use fancier urfave/cli
 	opts := Options{}
 
-	flag.IntVar(&opts.NumReqs, "r", 1, "Number of requests")
-	flag.IntVar(&opts.ConcurrentReqs, "c", 1, "Number of concurrent requests")
-	flag.DurationVar(&opts.SleepDuration, "s", 0, "Sleep time duration")
-	flag.BoolVar(&opts.IsDump, "d", false, "Dump request without actual run")
-	flag.Parse()
+	app := &cli.App{
+		Name:      "curly",
+		Version:   "1.0.0",
+		Usage:     "Converts cURL command from STDIN to golang code and executes it",
+		UsageText: `curly [-h|--help] [-v|--version] [-r <value>] [-c <value>] [-s <value>] [-d] <command> [<args>]`,
+		Authors: []*cli.Author{
+			{
+				Name:  "m1x0n",
+				Email: "mmorozovm@gmail.com",
+			},
+		},
+		Flags: []cli.Flag{
+			&cli.IntFlag{
+				Name:        "r",
+				Value:       1,
+				Usage:       "Number of requests",
+				Destination: &opts.NumReqs,
+			},
+			&cli.IntFlag{
+				Name:        "c",
+				Value:       1,
+				Usage:       "Number of concurrent requests",
+				Destination: &opts.ConcurrentReqs,
+			},
+			&cli.DurationFlag{
+				Name:        "s",
+				Value:       0,
+				Usage:       "Sleep duration",
+				Destination: &opts.SleepDuration,
+			},
+			&cli.BoolFlag{
+				Name:        "d",
+				Value:       false,
+				Usage:       "Dump generated golang code",
+				Destination: &opts.IsDump,
+			},
+		},
+		Action: func(cCtx *cli.Context) error {
+			return runCurly(cCtx, &opts)
+		},
+	}
 
+	if err := app.Run(os.Args); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+}
+
+func runCurly(cCtx *cli.Context, opts *Options) error {
 	// Grab curl from stdin
 	curlString, err := readCurlStdIn()
 
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return err
 	}
 
 	// Read aux js functions
 	scripts, err := readScripts()
 
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return err
 	}
 
 	// Execute curl2Go with curlString on v8 engine
@@ -62,38 +101,30 @@ func main() {
 	goString, err := executeOnGoja(curlString, scripts...)
 
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return err
 	}
 
-	//fmt.Println(goString)
-
 	if len(goString) == 0 || goString == "undefined" {
-		fmt.Println("Failed to convert curl properly")
-		os.Exit(1)
+		return fmt.Errorf("failed to convert curl properly")
 	}
 
 	// Make code ready to execute standalone
 	goCode, err := normalizeGoCode(goString, opts)
 
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return err
 	}
 
 	if opts.IsDump {
 		fmt.Println(goCode)
-		return
+		return nil
 	}
 
 	// Execute(interpret) generated go code in go via
 	// https://github.com/traefik/yaegi
 	err = executeOnYaegi(goCode)
 
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+	return err
 }
 
 func readCurlStdIn() (string, error) {
@@ -106,31 +137,6 @@ func readCurlStdIn() (string, error) {
 	}
 
 	return data.String(), nil
-}
-
-func readFile(name string) (string, error) {
-	file, err := os.Open(name)
-
-	if err != nil {
-		return "", err
-	}
-
-	defer file.Close()
-
-	builder := strings.Builder{}
-
-	scanner := bufio.NewScanner(file)
-
-	for scanner.Scan() {
-		builder.WriteString(scanner.Text())
-		builder.WriteString("\n")
-	}
-
-	if err := scanner.Err(); err != nil {
-		return "", err
-	}
-
-	return builder.String(), nil
 }
 
 func readScripts() ([]string, error) {
@@ -234,7 +240,7 @@ func executeOnYaegi(code string) error {
 	return err
 }
 
-func normalizeGoCode(code string, opts Options) (string, error) {
+func normalizeGoCode(code string, opts *Options) (string, error) {
 	t, err := template.ParseFS(tpl, "templates/request.tmpl")
 
 	if err != nil {
