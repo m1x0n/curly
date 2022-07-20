@@ -3,6 +3,8 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"embed"
+	_ "embed"
 	"flag"
 	"fmt"
 	"github.com/dop251/goja"
@@ -22,6 +24,12 @@ type Options struct {
 	SleepDuration  time.Duration
 	IsDump         bool
 }
+
+//go:embed js/json-to-go.js js/curl-to-go.js js/url-search-params.js
+var js embed.FS
+
+//go:embed templates/request.tmpl
+var tpl embed.FS
 
 func main() {
 	// Init flag params
@@ -126,26 +134,23 @@ func readFile(name string) (string, error) {
 	return builder.String(), nil
 }
 
-// TODO: Embed js files
 func readScripts() ([]string, error) {
-	scriptPath := "./js"
-
-	scripts := []string{
-		"json-to-go.js",
-		"curl-to-go.js",
-		"url-search-params.js",
+	files := []string{
+		"js/json-to-go.js",
+		"js/curl-to-go.js",
+		"js/url-search-params.js",
 	}
 
 	content := make([]string, 0)
 
-	for _, script := range scripts {
-		scriptContent, err := readFile(scriptPath + "/" + script)
+	for _, file := range files {
+		scriptContent, err := js.ReadFile(file)
 
 		if err != nil {
 			return nil, err
 		}
 
-		content = append(content, scriptContent)
+		content = append(content, string(scriptContent))
 	}
 
 	return content, nil
@@ -231,7 +236,7 @@ func executeOnYaegi(code string) error {
 }
 
 func normalizeGoCode(code string, opts Options) (string, error) {
-	tpl, err := template.ParseFiles("./templates/request.tmpl")
+	t, err := template.ParseFS(tpl, "templates/request.tmpl")
 
 	if err != nil {
 		return "", err
@@ -246,7 +251,7 @@ func normalizeGoCode(code string, opts Options) (string, error) {
 		"opts":    opts,
 	}
 
-	err = tpl.Execute(&result, data)
+	err = t.Execute(&result, data)
 
 	if err != nil {
 		return "", err
