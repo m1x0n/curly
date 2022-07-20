@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"flag"
 	"fmt"
 	"github.com/dop251/goja"
 	"github.com/traefik/yaegi/interp"
@@ -12,9 +13,27 @@ import (
 	"sort"
 	"strings"
 	"text/template"
+	"time"
 )
 
+type Options struct {
+	NumReqs        int
+	ConcurrentReqs int
+	SleepDuration  time.Duration
+	IsDump         bool
+}
+
 func main() {
+	// Init flag params
+	// TODO: Use fancier urfave/cli
+	opts := Options{}
+
+	flag.IntVar(&opts.NumReqs, "r", 1, "Number of requests")
+	flag.IntVar(&opts.ConcurrentReqs, "c", 1, "Number of concurrent requests")
+	flag.DurationVar(&opts.SleepDuration, "s", 0, "Sleep time duration")
+	flag.BoolVar(&opts.IsDump, "d", false, "Dump request without actual run")
+	flag.Parse()
+
 	// Grab curl from stdin
 	curlString, err := readCurlStdIn()
 
@@ -48,17 +67,20 @@ func main() {
 	}
 
 	// Make code ready to execute standalone
-	goCode, err := normalizeGoCode(goString)
+	goCode, err := normalizeGoCode(goString, opts)
 
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	//TODO: Use dump flag in order to print code
-	//fmt.Println(goCode)
+	if opts.IsDump {
+		fmt.Println(goCode)
+		return
+	}
 
-	// Execute(interpret) generated go code in go via https://github.com/traefik/yaegi
+	// Execute(interpret) generated go code in go via
+	// https://github.com/traefik/yaegi
 	err = executeOnYaegi(goCode)
 
 	if err != nil {
@@ -208,8 +230,7 @@ func executeOnYaegi(code string) error {
 	return err
 }
 
-// TODO: pass options, make it embed
-func normalizeGoCode(code string) (string, error) {
+func normalizeGoCode(code string, opts Options) (string, error) {
 	tpl, err := template.ParseFiles("./templates/request.tmpl")
 
 	if err != nil {
@@ -219,10 +240,10 @@ func normalizeGoCode(code string) (string, error) {
 	var result bytes.Buffer
 
 	// Data for template must be a struct/map
-	// TODO: add options here and add conditions to template
 	data := map[string]interface{}{
 		"code":    code,
 		"imports": getImports(code),
+		"opts":    opts,
 	}
 
 	err = tpl.Execute(&result, data)
@@ -239,6 +260,8 @@ func getImports(code string) []string {
 		"net/http",
 		"io/ioutil",
 		"fmt",
+		"sync",
+		"time",
 	}
 
 	if strings.Contains(code, "application/json") {
