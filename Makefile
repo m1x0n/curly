@@ -26,7 +26,7 @@ help:
 .PHONY: build ## Builds binary
 build:
 	mkdir -p $(BIN) && \
-	GOOS=$(OS) GOARCH=$(ARCH) go build -a -o $(BIN)/$(NAME) $(SRC)
+	GOOS=$(OS) GOARCH=$(ARCH) go build -ldflags="-w -s" -a -o $(BIN)/$(NAME) $(SRC)
 
 .PHONY: download ## Download dependencies
 download:
