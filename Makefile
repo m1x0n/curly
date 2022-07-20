@@ -9,10 +9,12 @@ LICENCE=MIT
 OS=linux
 ARCH=amd64
 
-SRC=main.go
-BIN=./bin
+ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
-# Does not build w/o CGO_ENABLED=0
+SRC=curly.go
+BIN=$(ROOT_DIR)/bin
+
+# FIXME: Does not build w/o CGO_ENABLED=0. Need to investigate on linking
 
 .PHONY: help ## Shows this help
 help:
@@ -23,7 +25,7 @@ help:
 
 .PHONY: build ## Builds binary
 build:
-	mkdir -p ./bin && \
+	mkdir -p $(BIN) && \
 	GOOS=$(OS) GOARCH=$(ARCH) go build -a -o $(BIN)/$(NAME) $(SRC)
 
 .PHONY: download ## Download dependencies
@@ -40,4 +42,4 @@ run:
 
 .PHONY: clean ## Clean up bin
 clean:
-	ls $(BIN)
+	rm -rf $(BIN)
