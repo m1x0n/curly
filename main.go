@@ -17,24 +17,12 @@ import (
 func main() {
 	fmt.Println("Curly")
 
-	json2Go, err := readJsonToGo()
+	scripts, err := readScripts()
 
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-
-	//fmt.Println(json2Go)
-
-	// Grab js functions
-	curl2Go, err := readCurl2Go()
-
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	//fmt.Println(curl2Go)
 
 	// Grab curl from stdin
 	curlString, err := readCurlStdIn()
@@ -45,8 +33,8 @@ func main() {
 	}
 
 	// Execute curl2Go with curlString on v8 engine
-	//goString, err := executeOnV8(json2Go, curl2Go, curlString)
-	goString, err := executeOnGoja(json2Go, curl2Go, curlString)
+	//goString, err := executeOnV8(curlString, scripts...)
+	goString, err := executeOnGoja(curlString, scripts...)
 
 	if err != nil {
 		fmt.Println(err)
@@ -116,14 +104,29 @@ func readFile(name string) (string, error) {
 	return builder.String(), nil
 }
 
-//TODO: Embed js file as a part of binary
-func readCurl2Go() (string, error) {
-	return readFile("./js/curl-to-go.js")
-}
+// TODO: Embed js files
+func readScripts() ([]string, error) {
+	scriptPath := "./js"
 
-//TODO: Embed js file as a part of binary
-func readJsonToGo() (string, error) {
-	return readFile("./js/json-to-go.js")
+	scripts := []string{
+		"json-to-go.js",
+		"curl-to-go.js",
+		"url-search-params.js",
+	}
+
+	content := make([]string, 0)
+
+	for _, script := range scripts {
+		scriptContent, err := readFile(scriptPath + "/" + script)
+
+		if err != nil {
+			return nil, err
+		}
+
+		content = append(content, scriptContent)
+	}
+
+	return content, nil
 }
 
 func prepareJsCall(curl string) (string, error) {
@@ -155,14 +158,15 @@ func prepareJsCall(curl string) (string, error) {
 	//return script, nil
 }
 
-func executeOnV8(json2Go string, curl2Go string, curl string) (string, error) {
+func executeOnV8(curl string, scripts ...string) (string, error) {
 	ctx := v8.NewContext()
 
 	defer ctx.Close()
 
 	// Load scripts to the main context
-	ctx.RunScript(json2Go, "main.js")
-	ctx.RunScript(curl2Go, "main.js")
+	for _, script := range scripts {
+		ctx.RunScript(script, "main.js")
+	}
 
 	// Compose js function call
 	//FIXME: string like "key1=value+1&key2=value%3A2" crashes on v8
@@ -188,12 +192,13 @@ func executeOnV8(json2Go string, curl2Go string, curl string) (string, error) {
 //  Turns out it requires some not implemented feature by this engine. Silent error in v8go
 //  ReferenceError: URLSearchParams is not defined at renderComplex (<eval>:252:24(130))
 //  So we need polyfills for this class
-func executeOnGoja(json2Go string, curl2Go string, curl string) (string, error) {
+func executeOnGoja(curl string, scripts ...string) (string, error) {
 	vm := goja.New()
 
 	// Load scripts to the main context
-	vm.RunString(json2Go)
-	vm.RunString(curl2Go)
+	for _, script := range scripts {
+		vm.RunString(script)
+	}
 
 	// Get curl2GoFn callable from VM
 	curlToGoFn, isOk := goja.AssertFunction(vm.Get("curlToGo"))
