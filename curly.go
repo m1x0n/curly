@@ -10,6 +10,7 @@ import (
 	"github.com/traefik/yaegi/interp"
 	"github.com/traefik/yaegi/stdlib"
 	"github.com/urfave/cli/v2"
+	"go/format"
 	"os"
 	"sort"
 	"strings"
@@ -114,13 +115,19 @@ func runCurly(opts *Options) error {
 		return err
 	}
 
+	// Beautify generated code
+	goCode, err = beautifyGoCode(goCode)
+
+	if err != nil {
+		return err
+	}
+
 	if opts.IsDump {
 		fmt.Println(goCode)
 		return nil
 	}
 
 	// Execute(interpret) generated go code in go via
-	// https://github.com/traefik/yaegi
 	err = executeOnYaegi(goCode)
 
 	return err
@@ -229,6 +236,20 @@ func normalizeGoCode(code string, opts *Options) (string, error) {
 	}
 
 	return result.String(), nil
+}
+
+func beautifyGoCode(code string) (string, error) {
+	//1. Replace '// handle err'
+	beautified := strings.ReplaceAll(code, "// handle err", "fmt.Println(err)\n\treturn")
+
+	// 2. Apply go format
+	formatted, err := format.Source([]byte(beautified))
+
+	if err != nil {
+		return "", err
+	}
+
+	return string(formatted), nil
 }
 
 func getImports(code string) []string {

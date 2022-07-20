@@ -2,9 +2,9 @@
 package main
 
 import (
-    {{range $val := .imports}}
-        "{{$val}}"
-    {{end}}
+    {{- range $val := .imports}}
+    "{{$val}}"
+    {{- end}}
 )
 
 func main() {
@@ -25,21 +25,20 @@ func main() {
                 request()
             }()
         }
-    	wg.Wait()
+        wg.Wait()
 
-    	time.Sleep(sleepDuration)
+        time.Sleep(sleepDuration)
     }
 }
 
 func request() {
 {{ .code }}
+        respBody, err := ioutil.ReadAll(resp.Body)
 
-respBody, err := ioutil.ReadAll(resp.Body)
+        if err != nil {
+            fmt.Println(err)
+            return
+        }
 
-if err != nil {
-    fmt.Println(err)
-    return
-}
-
-fmt.Println(string(respBody))
+        fmt.Println(string(respBody))
 }
