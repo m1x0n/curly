@@ -130,34 +130,11 @@ func readScripts() ([]string, error) {
 }
 
 func prepareJsCall(curl string) (string, error) {
-	// Compose js function call
-
 	script := "const result = curlToGo(`" + curl + "`)"
 	return script, nil
-
-	//tpl, err := template.ParseFiles("./templates/js.tmpl")
-	//
-	//if err != nil {
-	//	return "", err
-	//}
-	//
-	//var result bytes.Buffer
-	//
-	//data := map[string]interface{}{
-	//	"curl": curl,
-	//}
-	//
-	//err = tpl.Execute(&result, data)
-	//
-	//if err != nil {
-	//	return "", err
-	//}
-	//
-	//script := result.String()
-	//
-	//return script, nil
 }
 
+// Also works with polyfill for URLSearchParams
 func executeOnV8(curl string, scripts ...string) (string, error) {
 	ctx := v8.NewContext()
 
@@ -169,7 +146,6 @@ func executeOnV8(curl string, scripts ...string) (string, error) {
 	}
 
 	// Compose js function call
-	//FIXME: string like "key1=value+1&key2=value%3A2" crashes on v8
 	script, err := prepareJsCall(curl)
 
 	if err != nil {
@@ -191,7 +167,8 @@ func executeOnV8(curl string, scripts ...string) (string, error) {
 
 //  Turns out it requires some not implemented feature by this engine. Silent error in v8go
 //  ReferenceError: URLSearchParams is not defined at renderComplex (<eval>:252:24(130))
-//  So we need polyfills for this class
+//  So we need polyfills for this class.
+//  It's working with polyfill for URLSearchParams!
 func executeOnGoja(curl string, scripts ...string) (string, error) {
 	vm := goja.New()
 
@@ -292,9 +269,3 @@ func getImports(code string) []string {
 
 	return imports
 }
-
-// Escaping of quotes is fucked up
-
-// 1. Try exec in https://github.com/dop251/goja
-
-// 2. Debug: -> Add intermediate function for to original js and call it
