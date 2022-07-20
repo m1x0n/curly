@@ -15,17 +15,16 @@ import (
 )
 
 func main() {
-	fmt.Println("Curly")
-
-	scripts, err := readScripts()
+	// Grab curl from stdin
+	curlString, err := readCurlStdIn()
 
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	// Grab curl from stdin
-	curlString, err := readCurlStdIn()
+	// Read aux js functions
+	scripts, err := readScripts()
 
 	if err != nil {
 		fmt.Println(err)
@@ -56,9 +55,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println(goCode)
+	//TODO: Use dump flag in order to print code
+	//fmt.Println(goCode)
 
-	// Execute generated go code in go via https://github.com/traefik/yaegi
+	// Execute(interpret) generated go code in go via https://github.com/traefik/yaegi
 	err = executeOnYaegi(goCode)
 
 	if err != nil {
