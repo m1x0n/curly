@@ -11,7 +11,6 @@ import (
 	"github.com/traefik/yaegi/interp"
 	"github.com/traefik/yaegi/stdlib"
 	"os"
-	v8 "rogchap.com/v8go"
 	"sort"
 	"strings"
 	"text/template"
@@ -162,35 +161,35 @@ func prepareJsCall(curl string) (string, error) {
 }
 
 // Also works with polyfill for URLSearchParams
-func executeOnV8(curl string, scripts ...string) (string, error) {
-	ctx := v8.NewContext()
-
-	defer ctx.Close()
-
-	// Load scripts to the main context
-	for _, script := range scripts {
-		ctx.RunScript(script, "main.js")
-	}
-
-	// Compose js function call
-	script, err := prepareJsCall(curl)
-
-	if err != nil {
-		return "", err
-	}
-
-	// Load js function call to the main context
-	ctx.RunScript(script, "main.js")
-
-	// Evaluate js result
-	val, err := ctx.RunScript("result", "value.js")
-
-	if err != nil {
-		return "", err
-	}
-
-	return val.String(), nil
-}
+//func executeOnV8(curl string, scripts ...string) (string, error) {
+//	ctx := v8.NewContext()
+//
+//	defer ctx.Close()
+//
+//	// Load scripts to the main context
+//	for _, script := range scripts {
+//		ctx.RunScript(script, "main.js")
+//	}
+//
+//	// Compose js function call
+//	script, err := prepareJsCall(curl)
+//
+//	if err != nil {
+//		return "", err
+//	}
+//
+//	// Load js function call to the main context
+//	ctx.RunScript(script, "main.js")
+//
+//	// Evaluate js result
+//	val, err := ctx.RunScript("result", "value.js")
+//
+//	if err != nil {
+//		return "", err
+//	}
+//
+//	return val.String(), nil
+//}
 
 //  Turns out it requires some not implemented feature by this engine. Silent error in v8go
 //  ReferenceError: URLSearchParams is not defined at renderComplex (<eval>:252:24(130))
