@@ -45,6 +45,7 @@ func main() {
 				Email: "mmorozovm@gmail.com",
 			},
 		},
+		CustomAppHelpTemplate: getHelpTemplate(),
 		Flags: []cli.Flag{
 			&cli.IntFlag{
 				Name:        "r",
@@ -278,4 +279,27 @@ func getImports(code string) []string {
 	sort.Strings(imports)
 
 	return imports
+}
+
+func getHelpTemplate() string {
+	examples := `
+EXAMPLES:
+	1. Echo cURL command to stdin and run it via curly with default params:
+
+			echo "curl -X GET https://example.com" | curly
+
+	2. Echo cURL command to stdin and dump generated go code without execution:
+
+			echo "curl -X GET https://example.com" | curly -d
+
+	3. Read cURL command from clipboard and run generated code in 50 requests with 5 concurrency:
+		
+			xclip -o | curly -r 50 -c 5
+
+	4. Read cURL command from file and run generated code in 10 requests with 1 concurrency and 
+	   sleep duration of 1 second:
+		
+			cat curl.txt | curly -r 10 -s 1s
+`
+	return fmt.Sprintf("%s %s", cli.AppHelpTemplate, examples)
 }
