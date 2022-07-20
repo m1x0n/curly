@@ -71,7 +71,7 @@ func main() {
 			},
 		},
 		Action: func(cCtx *cli.Context) error {
-			return runCurly(cCtx, &opts)
+			return runCurly(&opts)
 		},
 	}
 
@@ -81,7 +81,7 @@ func main() {
 	}
 }
 
-func runCurly(cCtx *cli.Context, opts *Options) error {
+func runCurly(opts *Options) error {
 	// Grab curl from stdin
 	curlString, err := readCurlStdIn()
 
@@ -97,7 +97,6 @@ func runCurly(cCtx *cli.Context, opts *Options) error {
 	}
 
 	// Execute curl2Go with curlString on v8 engine
-	//goString, err := executeOnV8(curlString, scripts...)
 	goString, err := executeOnGoja(curlString, scripts...)
 
 	if err != nil {
@@ -161,42 +160,6 @@ func readScripts() ([]string, error) {
 	return content, nil
 }
 
-func prepareJsCall(curl string) (string, error) {
-	script := "const result = curlToGo(`" + curl + "`)"
-	return script, nil
-}
-
-// Also works with polyfill for URLSearchParams
-//func executeOnV8(curl string, scripts ...string) (string, error) {
-//	ctx := v8.NewContext()
-//
-//	defer ctx.Close()
-//
-//	// Load scripts to the main context
-//	for _, script := range scripts {
-//		ctx.RunScript(script, "main.js")
-//	}
-//
-//	// Compose js function call
-//	script, err := prepareJsCall(curl)
-//
-//	if err != nil {
-//		return "", err
-//	}
-//
-//	// Load js function call to the main context
-//	ctx.RunScript(script, "main.js")
-//
-//	// Evaluate js result
-//	val, err := ctx.RunScript("result", "value.js")
-//
-//	if err != nil {
-//		return "", err
-//	}
-//
-//	return val.String(), nil
-//}
-
 //  Turns out it requires some not implemented feature by this engine. Silent error in v8go
 //  ReferenceError: URLSearchParams is not defined at renderComplex (<eval>:252:24(130))
 //  So we need polyfills for this class.
@@ -206,7 +169,10 @@ func executeOnGoja(curl string, scripts ...string) (string, error) {
 
 	// Load scripts to the main context
 	for _, script := range scripts {
-		vm.RunString(script)
+		_, err := vm.RunString(script)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	// Get curl2GoFn callable from VM
