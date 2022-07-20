@@ -240,30 +240,20 @@ func getImports(code string) []string {
 		"time",
 	}
 
-	if strings.Contains(code, "application/json") {
-		imports = append(imports, []string{"encoding/json", "bytes"}...)
+	patternMap := map[string][]string{
+		"application/json":  {"encoding/json", "bytes"},
+		"url.Values{}":      {"net/url"},
+		"strings.NewReader": {"strings"},
+		"os.Open":           {"os"},
+		"io.MultiReader":    {"io"},
+		"tls.Config":        {"crypto/tls"},
 	}
 
-	if strings.Contains(code, "url.Values{}") {
-		imports = append(imports, "net/url")
+	for pattern, importList := range patternMap {
+		if strings.Contains(code, pattern) {
+			imports = append(imports, importList...)
+		}
 	}
-
-	if strings.Contains(code, "strings.NewReader") {
-		imports = append(imports, "strings")
-	}
-
-	if strings.Contains(code, "os.Open") {
-		imports = append(imports, "os")
-	}
-
-	if strings.Contains(code, "io.MultiReader") {
-		imports = append(imports, "io")
-	}
-
-	if strings.Contains(code, "tls.Config") {
-		imports = append(imports, "crypto/tls")
-	}
-
 	sort.Strings(imports)
 
 	return imports
