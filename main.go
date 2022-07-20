@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"github.com/dop251/goja"
 	"github.com/traefik/yaegi/interp"
 	"github.com/traefik/yaegi/stdlib"
 	"os"
@@ -44,7 +45,8 @@ func main() {
 	}
 
 	// Execute curl2Go with curlString on v8 engine
-	goString, err := executeOnV8(json2Go, curl2Go, curlString)
+	//goString, err := executeOnV8(json2Go, curl2Go, curlString)
+	goString, err := executeOnGoja(json2Go, curl2Go, curlString)
 
 	if err != nil {
 		fmt.Println(err)
@@ -183,6 +185,32 @@ func executeOnV8(json2Go string, curl2Go string, curl string) (string, error) {
 	return val.String(), nil
 }
 
+//  Turns out it requires some not implemented feature by this engine. Silent error in v8go
+//  ReferenceError: URLSearchParams is not defined at renderComplex (<eval>:252:24(130))
+//  So we need polyfills for this class
+func executeOnGoja(json2Go string, curl2Go string, curl string) (string, error) {
+	vm := goja.New()
+
+	// Load scripts to the main context
+	vm.RunString(json2Go)
+	vm.RunString(curl2Go)
+
+	// Get curl2GoFn callable from VM
+	curlToGoFn, isOk := goja.AssertFunction(vm.Get("curlToGo"))
+
+	if !isOk {
+		return "", fmt.Errorf("goja: Failed to locate curlToGo() function in global VM context")
+	}
+
+	result, err := curlToGoFn(goja.Undefined(), vm.ToValue(curl))
+
+	if err != nil {
+		return "", err
+	}
+
+	return result.String(), nil
+}
+
 func executeOnYaegi(code string) error {
 	i := interp.New(interp.Options{})
 	var err error
@@ -259,3 +287,9 @@ func getImports(code string) []string {
 
 	return imports
 }
+
+// Escaping of quotes is fucked up
+
+// 1. Try exec in https://github.com/dop251/goja
+
+// 2. Debug: -> Add intermediate function for to original js and call it
