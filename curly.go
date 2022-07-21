@@ -31,12 +31,16 @@ var js embed.FS
 //go:embed templates/request.tmpl
 var tpl embed.FS
 
+// version will be overridden by build
+var version = "latest"
+
+
 func main() {
 	opts := Options{}
 
 	app := &cli.App{
 		Name:      "curly",
-		Version:   "1.0.0",
+		Version:   version,
 		Usage:     "Converts cURL command from STDIN to golang code and executes it",
 		UsageText: `curly [-h|--help] [-v|--version] [-r <value>] [-c <value>] [-s <value>] [-d] <command> [<args>]`,
 		Authors: []*cli.Author{
