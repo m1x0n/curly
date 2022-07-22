@@ -38,7 +38,7 @@ Depending on flags code could be dumped or interpreted in runtime via **Yaegi**.
 
 ### Installation
 
-Currently, distribution is available in form of a binary executable on [Releases]() page for Linux and Mac OS.
+Currently, distribution is available in form of a binary executable on [Releases](https://github.com/m1x0n/curly/releases) page for Linux and Mac OS.
 
 Binary could be added to your `bin` directory.
 
