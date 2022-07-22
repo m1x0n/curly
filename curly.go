@@ -34,7 +34,6 @@ var tpl embed.FS
 // version will be overridden by build
 var version = "latest"
 
-
 func main() {
 	opts := Options{}
 
@@ -288,11 +287,11 @@ func getImports(code string) []string {
 func getHelpTemplate() string {
 	examples := `
 EXAMPLES:
-	1. Echo cURL command to stdin and run it via curly with default params:
+	1. Read cURL command and run it via curly with default params:
 
 			echo "curl -X GET https://example.com" | curly
 
-	2. Echo cURL command to stdin and dump generated go code without execution:
+	2. Read cURL command and dump generated go code without execution:
 
 			echo "curl -X GET https://example.com" | curly -d
 
