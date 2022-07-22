@@ -24,4 +24,4 @@ jobs:
           version: latest
           args: release
         env:
-          GITHUB_TOKEN: ${{secrets.TEST_SECRET}}
+          GITHUB_TOKEN: ${{secrets.CURLY_SECRET}}
