@@ -35,9 +35,18 @@ var tpl embed.FS
 var version = "latest"
 
 func main() {
+	app := createApp()
+
+	if err := app.Run(os.Args); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+}
+
+func createApp() *cli.App {
 	opts := Options{}
 
-	app := &cli.App{
+	return &cli.App{
 		Name:      "curly",
 		Version:   version,
 		Usage:     "Converts cURL command from STDIN to golang code and executes it",
@@ -79,16 +88,11 @@ func main() {
 			return runCurly(&opts)
 		},
 	}
-
-	if err := app.Run(os.Args); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
 }
 
 func runCurly(opts *Options) error {
 	// Grab curl from stdin
-	curlString, err := readCurlStdIn()
+	curlString, err := readCurl()
 
 	if err != nil {
 		return err
@@ -137,7 +141,7 @@ func runCurly(opts *Options) error {
 	return err
 }
 
-func readCurlStdIn() (string, error) {
+func readCurl() (string, error) {
 	data := strings.Builder{}
 
 	scanner := bufio.NewScanner(os.Stdin)
