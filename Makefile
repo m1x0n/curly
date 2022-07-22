@@ -4,6 +4,7 @@ MAKEFLAGS+=--silent
 
 AUTHOR=m1x0n
 NAME=curly
+VERSION=latest
 LICENCE=MIT
 
 OS=linux
@@ -13,8 +14,8 @@ ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
 SRC=curly.go
 BIN=$(ROOT_DIR)/bin
-
-# FIXME: Does not build w/o CGO_ENABLED=0. Need to investigate on linking
+DIST=$(ROOT_DIR)/dist
+LDFLAGS="-w -s"
 
 .PHONY: help ## Shows this help
 help:
@@ -26,11 +27,11 @@ help:
 .PHONY: build ## Builds binary
 build:
 	mkdir -p $(BIN) && \
-	GOOS=$(OS) GOARCH=$(ARCH) go build -ldflags="-w -s" -a -o $(BIN)/$(NAME) $(SRC)
+	GOOS=$(OS) GOARCH=$(ARCH) go build -ldflags=$(FLAGS) -a -x -v -o $(BIN)/$(NAME) $(SRC)
 
 .PHONY: download ## Download dependencies
 download:
-	go mod download
+	go mod download && go mod verify
 
 .PHONY: test ## Runs tests
 test:
@@ -38,8 +39,12 @@ test:
 
 .PHONY: run ## Runs application without build
 run:
-	go run main.go
+	go run curly.go
 
-.PHONY: clean ## Clean up bin
+.PHONY: clean ## Clean up
 clean:
-	rm -rf $(BIN)
+	rm -rf $(BIN) $(DIST)
+
+.PHONY: release ## Test release (goreleaser)
+release:
+	goreleaser release --snapshot --rm-dist
