@@ -9,15 +9,20 @@ import (
 
 func main() {
     var wg sync.WaitGroup
+    var chunkSize int
 
     numReqs := {{.opts.NumReqs}}
     concurrentReqs := {{.opts.ConcurrentReqs}}
     sleepDuration, _ := time.ParseDuration("{{.opts.SleepDuration}}")
 
-    chunks := numReqs / concurrentReqs
+    for i := 0; i < numReqs; i+= concurrentReqs {
+        if i + concurrentReqs < numReqs {
+            chunkSize = concurrentReqs
+        } else {
+            chunkSize = numReqs - i
+        }
 
-    for c := 0; c < chunks; c++ {
-        for r := 0; r < concurrentReqs; r++ {
+        for r := 0; r < chunkSize; r++ {
             wg.Add(1)
 
             go func() {
@@ -25,6 +30,7 @@ func main() {
                 request()
             }()
         }
+
         wg.Wait()
 
         time.Sleep(sleepDuration)
@@ -33,7 +39,7 @@ func main() {
 
 func request() {
 {{ .code }}
-        respBody, err := ioutil.ReadAll(resp.Body)
+        respBody, err := io.ReadAll(resp.Body)
 
         if err != nil {
             fmt.Println(err)
