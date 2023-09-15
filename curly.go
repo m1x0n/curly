@@ -175,10 +175,10 @@ func readScripts() ([]string, error) {
 	return content, nil
 }
 
-//  Turns out it requires some not implemented feature by this engine. Silent error in v8go
-//  ReferenceError: URLSearchParams is not defined at renderComplex (<eval>:252:24(130))
-//  So we need polyfills for this class.
-//  It's working with polyfill for URLSearchParams!
+// Turns out it requires some not implemented feature by this engine. Silent error in v8go
+// ReferenceError: URLSearchParams is not defined at renderComplex (<eval>:252:24(130))
+// So we need polyfills for this class.
+// It's working with polyfill for URLSearchParams!
 func executeOnGoja(curl string, scripts ...string) (string, error) {
 	vm := goja.New()
 
@@ -263,7 +263,7 @@ func beautifyGoCode(code string) (string, error) {
 func getImports(code string) []string {
 	imports := []string{
 		"net/http",
-		"io/ioutil",
+		"io",
 		"fmt",
 		"sync",
 		"time",
